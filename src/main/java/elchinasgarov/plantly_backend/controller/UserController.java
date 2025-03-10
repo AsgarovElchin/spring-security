@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -22,10 +23,15 @@ public class UserController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody MyUser user) {
-        String token = userService.verify(user);
+        String token = userService.login(user).toString();
         if (token.equals("Fail")) {
             return ResponseEntity.status(401).body("Invalid username or password");
         }
         return ResponseEntity.ok(token);
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<String> refresh(@RequestParam String refreshToken) {
+        return ResponseEntity.ok(userService.refreshAccessToken(refreshToken));
     }
 }

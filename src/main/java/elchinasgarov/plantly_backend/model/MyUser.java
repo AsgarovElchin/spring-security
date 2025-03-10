@@ -1,7 +1,6 @@
 package elchinasgarov.plantly_backend.model;
 
 import jakarta.persistence.*;
-import org.springframework.stereotype.Component;
 
 @Entity
 public class MyUser {
@@ -12,6 +11,8 @@ public class MyUser {
     private String username;
     @Column(nullable = false)
     private String password;
+    @Column(length = 512)
+    private String refreshToken;
 
     @Override
     public String toString() {
@@ -44,5 +45,13 @@ public class MyUser {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getRefreshToken() {
+        return refreshToken;
+    }
+
+    public void setRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
     }
 }
