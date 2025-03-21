@@ -3,6 +3,7 @@ package elchinasgarov.plantly_backend.service;
 import elchinasgarov.plantly_backend.dto.ReminderDto;
 import elchinasgarov.plantly_backend.mapper.ReminderMapper;
 import elchinasgarov.plantly_backend.model.Reminder;
+import elchinasgarov.plantly_backend.model.ReminderType;
 import elchinasgarov.plantly_backend.repository.ReminderRepository;
 import org.springframework.stereotype.Service;
 
@@ -18,11 +19,20 @@ public class ReminderService {
         this.reminderRepository = reminderRepository;
     }
 
-    public ReminderDto createReminder(ReminderDto reminderDto){
+    public ReminderDto createReminder(ReminderDto reminderDto) {
+        boolean exists = reminderRepository.existsByPlantIdAndReminderType(
+                reminderDto.plantId(), reminderDto.reminderType()
+        );
+
+        if (exists) {
+            throw new IllegalStateException("A reminder for this plant and type already exists");
+        }
+
         Reminder reminder = ReminderMapper.toEntity(reminderDto);
         Reminder savedReminder = reminderRepository.save(reminder);
         return ReminderMapper.toDto(savedReminder);
     }
+
 
     public ReminderDto updateReminder(Long id, ReminderDto reminderDto){
         Reminder reminder = reminderRepository.findById(id).orElseThrow(()-> new RuntimeException("Reminder not found"));
@@ -42,8 +52,8 @@ public class ReminderService {
                 .collect(Collectors.toList());
     }
 
-    public ReminderDto getReminderById(Long id){
-        Reminder reminder = reminderRepository.findById(id)
+    public ReminderDto getReminderById(Long id, ReminderType reminderType){
+        Reminder reminder = reminderRepository.findByIdAndReminderType(id,reminderType)
                 .orElseThrow(() -> new RuntimeException("Reminder not found"));
 
         return  ReminderMapper.toDto(reminder);
