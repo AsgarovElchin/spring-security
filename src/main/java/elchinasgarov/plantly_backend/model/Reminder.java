@@ -24,10 +24,13 @@ public class Reminder {
 
     private LocalDateTime reminderTime;
 
+    @Enumerated(EnumType.STRING)
+    private PreviousData previousData;
+
     public Reminder() {
     }
 
-    public Reminder(Long id, Long plantId, String plantName, ReminderType reminderType, int repeatEvery, String repeatUnit, LocalDateTime reminderTime) {
+    public Reminder(Long id, Long plantId, String plantName, ReminderType reminderType, int repeatEvery, String repeatUnit, LocalDateTime reminderTime, PreviousData previousData) {
         this.id = id;
         this.plantId = plantId;
         this.plantName = plantName;
@@ -35,6 +38,7 @@ public class Reminder {
         this.repeatEvery = repeatEvery;
         this.repeatUnit = repeatUnit;
         this.reminderTime = reminderTime;
+        this.previousData = previousData;
     }
 
     public Long getId() {
@@ -91,5 +95,13 @@ public class Reminder {
 
     public void setReminderTime(LocalDateTime reminderTime) {
         this.reminderTime = reminderTime;
+    }
+
+    public PreviousData getPreviousData() {
+        return previousData;
+    }
+
+    public void setPreviousData(PreviousData previousData) {
+        this.previousData = previousData;
     }
 }

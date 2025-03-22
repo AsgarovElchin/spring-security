@@ -1,5 +1,6 @@
 package elchinasgarov.plantly_backend.dto;
 
+import elchinasgarov.plantly_backend.model.PreviousData;
 import elchinasgarov.plantly_backend.model.ReminderType;
 
 import java.time.LocalDateTime;
@@ -11,6 +12,7 @@ public record ReminderDto(
         ReminderType reminderType,
         int repeatEvery,
         String repeatUnit,
-        LocalDateTime reminderTime
+        LocalDateTime reminderTime,
+        PreviousData previousData
 ) {
 }
