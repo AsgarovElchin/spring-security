@@ -14,6 +14,7 @@ public class ReminderMapper {
                 reminderDto.repeatEvery(),
                 reminderDto.repeatUnit(),
                 reminderDto.reminderTime(),
+                reminderDto.nextReminderDateTime(),
                 reminderDto.previousData()
         );
     }
@@ -27,7 +28,8 @@ public class ReminderMapper {
                 reminder.getRepeatEvery(),
                 reminder.getRepeatUnit(),
                 reminder.getReminderTime(),
-                reminder.getPreviousData()
+                reminder.getPreviousData(),
+                reminder.getNextReminderDateTime()
         );
     }
 }

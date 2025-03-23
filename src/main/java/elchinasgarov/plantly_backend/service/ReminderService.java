@@ -5,8 +5,11 @@ import elchinasgarov.plantly_backend.mapper.ReminderMapper;
 import elchinasgarov.plantly_backend.model.Reminder;
 import elchinasgarov.plantly_backend.model.ReminderType;
 import elchinasgarov.plantly_backend.repository.ReminderRepository;
+import elchinasgarov.plantly_backend.util.ReminderDateUtil;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -28,7 +31,30 @@ public class ReminderService {
             throw new IllegalStateException("A reminder for this plant and type already exists");
         }
 
-        Reminder reminder = ReminderMapper.toEntity(reminderDto);
+        LocalTime userChosenTime = reminderDto.reminderTime().toLocalTime();
+
+        LocalDateTime calculatedNextReminderDateTime = ReminderDateUtil.calculateNextReminderDateTime(
+                reminderDto.previousData(),
+                reminderDto.repeatEvery(),
+                reminderDto.repeatUnit(),
+                userChosenTime
+        );
+
+        Reminder reminder = new Reminder(
+                null,
+                reminderDto.plantId(),
+                reminderDto.plantName(),
+                reminderDto.reminderType(),
+                reminderDto.repeatEvery(),
+                reminderDto.repeatUnit(),
+                reminderDto.reminderTime(),
+                calculatedNextReminderDateTime,
+                reminderDto.previousData()
+        );
+
+
+
+
         Reminder savedReminder = reminderRepository.save(reminder);
         return ReminderMapper.toDto(savedReminder);
     }

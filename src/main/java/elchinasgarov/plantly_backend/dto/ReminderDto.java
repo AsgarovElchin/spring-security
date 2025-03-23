@@ -13,6 +13,7 @@ public record ReminderDto(
         int repeatEvery,
         String repeatUnit,
         LocalDateTime reminderTime,
-        PreviousData previousData
+        PreviousData previousData,
+        LocalDateTime nextReminderDateTime
 ) {
 }
