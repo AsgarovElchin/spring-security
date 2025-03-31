@@ -67,6 +67,14 @@ public class ReminderService {
         reminder.setRepeatUnit(reminderDto.repeatUnit());
         reminder.setReminderTime(reminderDto.reminderTime());
 
+        LocalDateTime recalculatedNextReminder = ReminderDateUtil.calculateNextReminderDateTime(
+                reminderDto.previousData(),
+                reminderDto.repeatEvery(),
+                reminderDto.repeatUnit(),
+                reminderDto.reminderTime().toLocalTime()
+        );
+        reminder.setNextReminderDateTime(recalculatedNextReminder);
+
         return ReminderMapper.toDto(reminderRepository.save(reminder));
 
     }
