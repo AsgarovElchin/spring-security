@@ -4,10 +4,13 @@ import elchinasgarov.plantly_backend.model.MyUser;
 import elchinasgarov.plantly_backend.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Map;
 
 @RestController
 public class UserController {
@@ -23,15 +26,26 @@ public class UserController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody MyUser user) {
-        String token = userService.login(user).toString();
-        if (token.equals("Fail")) {
-            return ResponseEntity.status(401).body("Invalid username or password");
+        try {
+            Map<String, String> tokens = userService.login(user);
+            return ResponseEntity.ok(tokens);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(401).body(e.getMessage());
         }
-        return ResponseEntity.ok(token);
     }
+
 
     @PostMapping("/refresh")
     public ResponseEntity<String> refresh(@RequestParam String refreshToken) {
         return ResponseEntity.ok(userService.refreshAccessToken(refreshToken));
     }
+
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(Authentication authentication) {
+        String username = authentication.getName();
+        userService.logout(username);
+        return ResponseEntity.ok("Successfully logged out.");
+    }
+
+
 }

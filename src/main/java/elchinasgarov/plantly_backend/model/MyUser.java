@@ -11,7 +11,7 @@ public class MyUser {
     private String username;
     @Column(nullable = false)
     private String password;
-    @Column(length = 512)
+    @Column(nullable = true, length = 512)
     private String refreshToken;
 
     @Override

@@ -4,10 +4,13 @@ package elchinasgarov.plantly_backend.service;
 import elchinasgarov.plantly_backend.model.MyUser;
 import elchinasgarov.plantly_backend.model.UserPrincipal;
 import elchinasgarov.plantly_backend.repository.UserRepository;
+import io.jsonwebtoken.ExpiredJwtException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -63,15 +66,33 @@ public class UserService {
         }
 
         MyUser user = userOptional.get();
-
-
         UserDetails userDetails = new UserPrincipal(user);
 
-
-        if (!jwtService.validateRefreshToken(refreshToken, userDetails)) {
-            throw new RuntimeException("Invalid or expired refresh token");
+        try {
+            if (!jwtService.validateRefreshToken(refreshToken, userDetails)) {
+                throw new RuntimeException("Invalid or expired refresh token");
+            }
+        } catch (ExpiredJwtException e) {
+            throw new RuntimeException("Refresh token has expired");
         }
 
         return jwtService.generateAccessToken(user.getUsername());
     }
+
+
+    @Transactional
+    public void logout(String username) {
+        System.out.println("Logging out user: " + username);
+        MyUser user = userRepository.findByUsername(username);
+        if (user != null) {
+            System.out.println("Refresh token before save: " + user.getRefreshToken());
+            user.setRefreshToken(null);
+            userRepository.save(user);
+            System.out.println("Refresh token after save: " + user.getRefreshToken());
+        } else {
+            System.out.println("User not found in DB.");
+        }
+    }
+
+
 }
