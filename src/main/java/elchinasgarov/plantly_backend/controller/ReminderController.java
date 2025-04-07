@@ -1,5 +1,7 @@
 package elchinasgarov.plantly_backend.controller;
 
+import elchinasgarov.plantly_backend.dto.ApiErrorResponse;
+import elchinasgarov.plantly_backend.dto.ApiResponse;
 import elchinasgarov.plantly_backend.dto.ReminderDto;
 import elchinasgarov.plantly_backend.model.ReminderType;
 import elchinasgarov.plantly_backend.service.ReminderService;
@@ -20,44 +22,48 @@ public class ReminderController {
 
     @PostMapping
     public ResponseEntity<?> createReminder(@RequestBody ReminderDto reminderDto) {
-        System.out.println("Received reminderDto: " + reminderDto);
         try {
             ReminderDto created = reminderService.createReminder(reminderDto);
-            System.out.println("Saved and returning: " + created);
-            return ResponseEntity.ok(created);
+            return ResponseEntity.ok(new ApiResponse<>(true, "Reminder created", created));
         } catch (IllegalStateException e) {
-            return ResponseEntity.status(409).body(e.getMessage());
+            return ResponseEntity.status(409).body(new ApiErrorResponse(e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("An unexpected error occurred.");
+            return ResponseEntity.status(500).body(new ApiErrorResponse("Failed to create reminder"));
         }
     }
 
-
     @PutMapping("/{id}")
-    public ResponseEntity<ReminderDto> updateReminder(@PathVariable long id, @RequestBody ReminderDto reminderDto) {
-        return ResponseEntity.ok(reminderService.updateReminder(id, reminderDto));
+    public ResponseEntity<?> updateReminder(@PathVariable long id, @RequestBody ReminderDto reminderDto) {
+        ReminderDto updated = reminderService.updateReminder(id, reminderDto);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Reminder updated", updated));
     }
 
     @GetMapping
-    public ResponseEntity<List<ReminderDto>> getAllReminders() {
-        return ResponseEntity.ok(reminderService.getAllReminders());
+    public ResponseEntity<?> getAllReminders() {
+        List<ReminderDto> reminders = reminderService.getAllReminders();
+        return ResponseEntity.ok(new ApiResponse<>(true, "All reminders fetched", reminders));
     }
 
     @GetMapping("/{id}/{reminderType}")
-    public ResponseEntity<ReminderDto> getReminderByIdAndType(
+    public ResponseEntity<?> getReminderByIdAndType(
             @PathVariable Long id,
             @PathVariable ReminderType reminderType
     ) {
-        ReminderDto reminder = reminderService.getReminderById(id, reminderType);
-        return ResponseEntity.ok(reminder);
+        try {
+            ReminderDto reminder = reminderService.getReminderById(id, reminderType);
+            return ResponseEntity.ok(new ApiResponse<>(true, "Reminder fetched", reminder));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(404).body(new ApiErrorResponse(e.getMessage()));
+        }
     }
-
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteReminder(@PathVariable long id) {
-        reminderService.deleteReminder(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<?> deleteReminder(@PathVariable long id) {
+        try {
+            reminderService.deleteReminder(id);
+            return ResponseEntity.ok(new ApiResponse<>(true, "Reminder deleted", null));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(404).body(new ApiErrorResponse(e.getMessage()));
+        }
     }
-
-
 }

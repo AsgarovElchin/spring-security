@@ -1,8 +1,10 @@
 package elchinasgarov.plantly_backend.controller;
 
+import elchinasgarov.plantly_backend.dto.*;
 import elchinasgarov.plantly_backend.model.MyUser;
 import elchinasgarov.plantly_backend.service.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,37 +17,81 @@ import java.util.Map;
 @RestController
 public class UserController {
 
-    @Autowired
-    private  UserService userService;
+    private final UserService userService;
 
-    @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody MyUser user){
-        MyUser registeredUser = userService.register(user);
-        return ResponseEntity.ok(registeredUser);
+    public UserController(UserService userService) {
+        this.userService = userService;
     }
 
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody MyUser user) {
+    @Transactional
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequestDto dto) {
         try {
-            Map<String, String> tokens = userService.login(user);
-            return ResponseEntity.ok(tokens);
+            MyUser user = new MyUser();
+            user.setEmail(dto.getEmail());
+            user.setPassword(dto.getPassword());
+
+            MyUser registeredUser = userService.register(user);
+            return ResponseEntity.ok(new ApiResponse<>(true, "User registered successfully", registeredUser));
         } catch (RuntimeException e) {
-            return ResponseEntity.status(401).body(e.getMessage());
+            return ResponseEntity.badRequest().body(new ApiErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(new ApiErrorResponse("Internal server error"));
         }
     }
 
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequestDto dto) {
+        try {
+            MyUser user = new MyUser();
+            user.setEmail(dto.getEmail());
+            user.setPassword(dto.getPassword());
+
+            Map<String, String> tokens = userService.login(user);
+            return ResponseEntity.ok(new ApiResponse<>(true, "Login successful", tokens));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(401).body(new ApiErrorResponse(e.getMessage()));
+        }
+    }
 
     @PostMapping("/refresh")
-    public ResponseEntity<String> refresh(@RequestParam String refreshToken) {
-        return ResponseEntity.ok(userService.refreshAccessToken(refreshToken));
+    public ResponseEntity<?> refresh(@RequestParam String refreshToken) {
+        try {
+            String accessToken = userService.refreshAccessToken(refreshToken);
+            return ResponseEntity.ok(new ApiResponse<>(true, "Access token refreshed", accessToken));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(401).body(new ApiErrorResponse(e.getMessage()));
+        }
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<String> logout(Authentication authentication) {
-        String username = authentication.getName();
-        userService.logout(username);
-        return ResponseEntity.ok("Successfully logged out.");
+    public ResponseEntity<?> logout(Authentication authentication) {
+        try {
+            String email = authentication.getName();
+            userService.logout(email);
+            return ResponseEntity.ok(new ApiResponse<>(true, "Successfully logged out", null));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(new ApiErrorResponse("Logout failed"));
+        }
     }
 
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestParam String email) {
+        try {
+            userService.sendPasswordResetOtp(email);
+            return ResponseEntity.ok(new ApiResponse<>(true, "OTP sent to your email", null));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(new ApiErrorResponse(e.getMessage()));
+        }
+    }
 
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordRequestDto dto) {
+        try {
+            userService.resetPasswordWithOtp(dto.getEmail(), dto.getOtp(), dto.getNewPassword());
+            return ResponseEntity.ok(new ApiResponse<>(true, "Password successfully reset", null));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(new ApiErrorResponse(e.getMessage()));
+        }
+    }
 }

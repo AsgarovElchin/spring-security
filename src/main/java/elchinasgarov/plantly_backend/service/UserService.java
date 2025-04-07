@@ -4,13 +4,14 @@ package elchinasgarov.plantly_backend.service;
 import elchinasgarov.plantly_backend.model.MyUser;
 import elchinasgarov.plantly_backend.model.UserPrincipal;
 import elchinasgarov.plantly_backend.repository.UserRepository;
+import elchinasgarov.plantly_backend.repository.VerifiedEmailRepository;
+import elchinasgarov.plantly_backend.util.OtpUtil;
 import io.jsonwebtoken.ExpiredJwtException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -18,35 +19,49 @@ import java.util.Optional;
 @Service
 public class UserService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final JWTService jwtService;
+    private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
+    private final VerifiedEmailRepository verifiedEmailRepository;
 
-    @Autowired
-    private JWTService jwtService;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
+    public UserService(UserRepository userRepository, JWTService jwtService,
+                       PasswordEncoder passwordEncoder, EmailService emailService, VerifiedEmailRepository verifiedEmailRepository) {
+        this.userRepository = userRepository;
+        this.jwtService = jwtService;
+        this.passwordEncoder = passwordEncoder;
+        this.emailService = emailService;
+        this.verifiedEmailRepository = verifiedEmailRepository;
+    }
 
     public MyUser register(MyUser user) {
-        if (userRepository.findByUsername(user.getUsername()) != null) {
-            throw new RuntimeException("Username already taken!");
+        String email = user.getEmail().toLowerCase();
+
+        if (userRepository.findByEmail(email) != null) {
+            throw new RuntimeException("Email already registered.");
         }
 
+        if (!verifiedEmailRepository.findByEmail(email).isPresent()) {
+            throw new RuntimeException("Please verify your email before registering.");
+        }
+
+        user.setEmail(email);
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        return userRepository.save(user);
+        MyUser savedUser = userRepository.save(user);
+
+        verifiedEmailRepository.deleteByEmail(email);
+        return savedUser;
     }
 
     public Map<String, String> login(MyUser user) {
-        MyUser existingUser = userRepository.findByUsername(user.getUsername());
+        MyUser existingUser = userRepository.findByEmail(user.getEmail());
 
         if (existingUser == null || !passwordEncoder.matches(user.getPassword(), existingUser.getPassword())) {
             throw new RuntimeException("Invalid username or password");
         }
 
-
-        String accessToken = jwtService.generateAccessToken(user.getUsername());
-        String refreshToken = jwtService.generateRefreshToken(user.getUsername());
+        String accessToken = jwtService.generateAccessToken(user.getEmail());
+        String refreshToken = jwtService.generateRefreshToken(user.getEmail());
 
         existingUser.setRefreshToken(refreshToken);
         userRepository.save(existingUser);
@@ -56,7 +71,6 @@ public class UserService {
         response.put("refreshToken", refreshToken);
         return response;
     }
-
 
     public String refreshAccessToken(String refreshToken) {
         Optional<MyUser> userOptional = userRepository.findByRefreshToken(refreshToken);
@@ -76,23 +90,50 @@ public class UserService {
             throw new RuntimeException("Refresh token has expired");
         }
 
-        return jwtService.generateAccessToken(user.getUsername());
+        return jwtService.generateAccessToken(user.getEmail());
     }
-
 
     @Transactional
     public void logout(String username) {
-        System.out.println("Logging out user: " + username);
-        MyUser user = userRepository.findByUsername(username);
+        MyUser user = userRepository.findByEmail(username);
         if (user != null) {
-            System.out.println("Refresh token before save: " + user.getRefreshToken());
             user.setRefreshToken(null);
             userRepository.save(user);
-            System.out.println("Refresh token after save: " + user.getRefreshToken());
-        } else {
-            System.out.println("User not found in DB.");
         }
     }
 
+    public void sendPasswordResetOtp(String email) {
+        MyUser user = userRepository.findByEmail(email);
+        if (user == null) {
+            throw new RuntimeException("User not found");
+        }
 
+        String otp = OtpUtil.generate6DigitOtp();
+        user.setResetOtp(otp);
+        user.setResetOtpExpiry(LocalDateTime.now().plusMinutes(10));
+        userRepository.save(user);
+
+        String message = "Your password reset OTP is: " + otp + "\nIt will expire in 10 minutes.";
+        emailService.sendEmail(email, "Password Reset OTP", message);
+    }
+
+    public void resetPasswordWithOtp(String email, String otp, String newPassword) {
+        MyUser user = userRepository.findByEmail(email);
+        if (user == null) {
+            throw new RuntimeException("User not found");
+        }
+
+        if (user.getResetOtp() == null || !user.getResetOtp().equals(otp)) {
+            throw new RuntimeException("Invalid OTP");
+        }
+
+        if (user.getResetOtpExpiry().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("OTP expired");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setResetOtp(null);
+        user.setResetOtpExpiry(null);
+        userRepository.save(user);
+    }
 }

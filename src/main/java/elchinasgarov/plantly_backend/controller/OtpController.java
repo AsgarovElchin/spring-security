@@ -1,12 +1,13 @@
 package elchinasgarov.plantly_backend.controller;
 
+import elchinasgarov.plantly_backend.dto.ApiErrorResponse;
+import elchinasgarov.plantly_backend.dto.ApiResponse;
 import elchinasgarov.plantly_backend.dto.OtpRequestDto;
 import elchinasgarov.plantly_backend.dto.OtpVerifyDto;
 import elchinasgarov.plantly_backend.service.OtpService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/otp")
@@ -19,16 +20,22 @@ public class OtpController {
     }
 
     @PostMapping("/send")
-    public ResponseEntity<String> sendOtp(@RequestBody OtpRequestDto dto) {
-        otpService.generateOtp(dto.getEmail());
-        return ResponseEntity.ok("OTP sent to email.");
+    public ResponseEntity<?> sendOtp(@RequestBody OtpRequestDto dto) {
+        try {
+            otpService.generateRegistrationOtp(dto.getEmail());
+            return ResponseEntity.ok(new ApiResponse<>(true, "OTP sent to email for verification", null));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(new ApiErrorResponse("Failed to send OTP"));
+        }
     }
 
     @PostMapping("/verify")
-    public ResponseEntity<String> verifyOtp(@RequestBody OtpVerifyDto dto) {
-        boolean isValid = otpService.verifyOtp(dto.getEmail(), dto.getOtp());
-        return isValid ?
-                ResponseEntity.ok("OTP verified.") :
-                ResponseEntity.badRequest().body("Invalid or expired OTP.");
+    public ResponseEntity<?> verifyOtp(@RequestBody OtpVerifyDto dto) {
+        boolean isValid = otpService.verifyRegistrationOtp(dto.getEmail(), dto.getOtp());
+        if (isValid) {
+            return ResponseEntity.ok(new ApiResponse<>(true, "OTP verified", null));
+        } else {
+            return ResponseEntity.badRequest().body(new ApiErrorResponse("Invalid or expired OTP"));
+        }
     }
 }

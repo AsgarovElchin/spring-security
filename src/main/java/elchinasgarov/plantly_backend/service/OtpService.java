@@ -1,43 +1,52 @@
 package elchinasgarov.plantly_backend.service;
 
 import elchinasgarov.plantly_backend.model.Otp;
+import elchinasgarov.plantly_backend.model.VerifiedEmail;
 import elchinasgarov.plantly_backend.repository.OtpRepository;
+import elchinasgarov.plantly_backend.repository.VerifiedEmailRepository;
+import elchinasgarov.plantly_backend.util.OtpUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Random;
+
 
 @Service
 public class OtpService {
 
     private final OtpRepository otpRepository;
     private final EmailService emailService;
+    private final VerifiedEmailRepository verifiedEmailRepository;
 
-    public OtpService(OtpRepository otpRepository, EmailService emailService) {
+    public OtpService(OtpRepository otpRepository, EmailService emailService, VerifiedEmailRepository verifiedEmailRepository) {
         this.otpRepository = otpRepository;
         this.emailService = emailService;
+        this.verifiedEmailRepository = verifiedEmailRepository;
     }
 
     @Transactional
-    public void generateOtp(String rawEmail) {
-        String email = rawEmail.trim().toLowerCase();
-        String otp = String.format("%06d", new Random().nextInt(999999));
+    public void generateRegistrationOtp(String email) {
+        String otp = OtpUtil.generate6DigitOtp();
         LocalDateTime expiry = LocalDateTime.now().plusMinutes(5);
 
-        otpRepository.deleteByEmail(email);
-        Otp newOtp = new Otp(email, otp, expiry);
+        otpRepository.deleteByEmail(email.toLowerCase());
+        Otp newOtp = new Otp(email.toLowerCase(), otp, expiry);
         otpRepository.save(newOtp);
 
-        emailService.sendOtpEmail(email, otp);
+        String message = "Your verification OTP is: " + otp + ". It will expire in 5 minutes.";
+        emailService.sendEmail(email, "Email Verification OTP", message);
     }
 
-    public boolean verifyOtp(String rawEmail, String inputOtp) {
-        String email = rawEmail.trim().toLowerCase();
-
-        return otpRepository.findByEmail(email)
+    @Transactional
+    public boolean verifyRegistrationOtp(String email, String inputOtp) {
+        return otpRepository.findByEmail(email.toLowerCase())
                 .filter(stored -> stored.getOtp().equals(inputOtp))
                 .filter(stored -> stored.getExpiryTime().isAfter(LocalDateTime.now()))
-                .isPresent();
+                .map(validOtp -> {
+                    otpRepository.delete(validOtp);
+                    verifiedEmailRepository.save(new VerifiedEmail(email));
+                    return true;
+                })
+                .orElse(false);
     }
 }

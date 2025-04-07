@@ -37,16 +37,30 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(request-> request
-                        .requestMatchers("/register","/login","/refresh","/plants/**","/reminders/**","logout","api/otp/**")
-                        .permitAll()
-                        .anyRequest().authenticated())
+                .authorizeHttpRequests(request -> request
+                        .requestMatchers(
+                                "/register",
+                                "/login",
+                                "/refresh",
+                                "/forgot-password",
+                                "/reset-password",
+                                "/api/otp/**"
+                        ).permitAll()
+                        .requestMatchers(
+                                "/plants/**",
+                                "/reminders/**",
+                                "/logout"
+                        ).authenticated()
+                        .anyRequest().authenticated()
+                )
                 .httpBasic(Customizer.withDefaults())
-                .sessionManagement(session->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
+
 
     @Bean
     public AuthenticationProvider authenticationProvider(){
