@@ -1,6 +1,7 @@
 package elchinasgarov.plantly_backend.service;
 
 import elchinasgarov.plantly_backend.model.Otp;
+import elchinasgarov.plantly_backend.model.OtpType;
 import elchinasgarov.plantly_backend.model.VerifiedEmail;
 import elchinasgarov.plantly_backend.repository.OtpRepository;
 import elchinasgarov.plantly_backend.repository.VerifiedEmailRepository;
@@ -9,7 +10,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-
 
 @Service
 public class OtpService {
@@ -25,28 +25,37 @@ public class OtpService {
     }
 
     @Transactional
-    public void generateRegistrationOtp(String email) {
+    public void generateOtp(String email, OtpType type) {
         String otp = OtpUtil.generate6DigitOtp();
         LocalDateTime expiry = LocalDateTime.now().plusMinutes(5);
 
-        otpRepository.deleteByEmail(email.toLowerCase());
-        Otp newOtp = new Otp(email.toLowerCase(), otp, expiry);
+        otpRepository.deleteByEmailAndType(email.toLowerCase(), type);
+        Otp newOtp = new Otp(email.toLowerCase(), otp, expiry, type);
         otpRepository.save(newOtp);
 
-        String message = "Your verification OTP is: " + otp + ". It will expire in 5 minutes.";
-        emailService.sendEmail(email, "Email Verification OTP", message);
+        String subject = (type == OtpType.REGISTRATION) ? "Email Verification OTP" : "Password Reset OTP";
+        String message = "Your OTP is: " + otp + ". It will expire in 5 minutes.";
+        emailService.sendEmail(email, subject, message);
     }
 
     @Transactional
-    public boolean verifyRegistrationOtp(String email, String inputOtp) {
-        return otpRepository.findByEmail(email.toLowerCase())
+    public boolean verifyOtp(String email, String inputOtp, OtpType type) {
+        return otpRepository.findByEmailAndType(email.toLowerCase(), type)
                 .filter(stored -> stored.getOtp().equals(inputOtp))
                 .filter(stored -> stored.getExpiryTime().isAfter(LocalDateTime.now()))
                 .map(validOtp -> {
                     otpRepository.delete(validOtp);
-                    verifiedEmailRepository.save(new VerifiedEmail(email));
+                    verifiedEmailRepository.save(new VerifiedEmail(email, type));
                     return true;
                 })
                 .orElse(false);
+    }
+
+    public boolean isEmailVerified(String email, OtpType type) {
+        return verifiedEmailRepository.findByEmailAndType(email, type).isPresent();
+    }
+
+    public void clearVerification(String email, OtpType type) {
+        verifiedEmailRepository.deleteByEmailAndType(email, type);
     }
 }

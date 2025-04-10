@@ -22,8 +22,8 @@ public class OtpController {
     @PostMapping("/send")
     public ResponseEntity<?> sendOtp(@RequestBody OtpRequestDto dto) {
         try {
-            otpService.generateRegistrationOtp(dto.getEmail());
-            return ResponseEntity.ok(new ApiResponse<>(true, "OTP sent to email for verification", null));
+            otpService.generateOtp(dto.getEmail(), dto.getType());
+            return ResponseEntity.ok(new ApiResponse<>(true, "OTP sent to email", null));
         } catch (Exception e) {
             return ResponseEntity.status(500).body(new ApiErrorResponse("Failed to send OTP"));
         }
@@ -31,7 +31,7 @@ public class OtpController {
 
     @PostMapping("/verify")
     public ResponseEntity<?> verifyOtp(@RequestBody OtpVerifyDto dto) {
-        boolean isValid = otpService.verifyRegistrationOtp(dto.getEmail(), dto.getOtp());
+        boolean isValid = otpService.verifyOtp(dto.getEmail(), dto.getOtp(), dto.getType());
         if (isValid) {
             return ResponseEntity.ok(new ApiResponse<>(true, "OTP verified", null));
         } else {

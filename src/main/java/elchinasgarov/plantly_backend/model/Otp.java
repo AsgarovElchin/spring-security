@@ -16,12 +16,16 @@ public class Otp {
     private LocalDateTime expiryTime;
     private LocalDateTime createdAt;
 
+    @Enumerated(EnumType.STRING)
+    private OtpType type;
+
     public Otp() {}
 
-    public Otp(String email, String otp, LocalDateTime expiryTime) {
+    public Otp(String email, String otp, LocalDateTime expiryTime, OtpType type) {
         this.email = email;
         this.otp = otp;
         this.expiryTime = expiryTime;
+        this.type = type;
     }
 
     @PrePersist
@@ -31,6 +35,10 @@ public class Otp {
 
     public Long getId() {
         return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getEmail() {
@@ -63,5 +71,13 @@ public class Otp {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public OtpType getType() {
+        return type;
+    }
+
+    public void setType(OtpType type) {
+        this.type = type;
     }
 }

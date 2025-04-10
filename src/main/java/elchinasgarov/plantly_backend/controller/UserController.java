@@ -64,7 +64,7 @@ public class UserController {
         }
     }
 
-    @PostMapping("/logout")
+    @PostMapping("/auth/logout")
     public ResponseEntity<?> logout(Authentication authentication) {
         try {
             String email = authentication.getName();
@@ -75,20 +75,10 @@ public class UserController {
         }
     }
 
-    @PostMapping("/forgot-password")
-    public ResponseEntity<?> forgotPassword(@RequestParam String email) {
-        try {
-            userService.sendPasswordResetOtp(email);
-            return ResponseEntity.ok(new ApiResponse<>(true, "OTP sent to your email", null));
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(new ApiErrorResponse(e.getMessage()));
-        }
-    }
-
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordRequestDto dto) {
         try {
-            userService.resetPasswordWithOtp(dto.getEmail(), dto.getOtp(), dto.getNewPassword());
+            userService.resetPassword(dto.getEmail(), dto.getNewPassword());
             return ResponseEntity.ok(new ApiResponse<>(true, "Password successfully reset", null));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(new ApiErrorResponse(e.getMessage()));

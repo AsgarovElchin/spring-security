@@ -1,8 +1,7 @@
 package elchinasgarov.plantly_backend.service;
 
 
-import elchinasgarov.plantly_backend.model.MyUser;
-import elchinasgarov.plantly_backend.model.UserPrincipal;
+import elchinasgarov.plantly_backend.model.*;
 import elchinasgarov.plantly_backend.repository.UserRepository;
 import elchinasgarov.plantly_backend.repository.VerifiedEmailRepository;
 import elchinasgarov.plantly_backend.util.OtpUtil;
@@ -22,16 +21,17 @@ public class UserService {
     private final UserRepository userRepository;
     private final JWTService jwtService;
     private final PasswordEncoder passwordEncoder;
-    private final EmailService emailService;
     private final VerifiedEmailRepository verifiedEmailRepository;
+    private final OtpService otpService;
 
     public UserService(UserRepository userRepository, JWTService jwtService,
-                       PasswordEncoder passwordEncoder, EmailService emailService, VerifiedEmailRepository verifiedEmailRepository) {
+                       PasswordEncoder passwordEncoder, VerifiedEmailRepository verifiedEmailRepository,
+                       OtpService otpService) {
         this.userRepository = userRepository;
         this.jwtService = jwtService;
         this.passwordEncoder = passwordEncoder;
-        this.emailService = emailService;
         this.verifiedEmailRepository = verifiedEmailRepository;
+        this.otpService = otpService;
     }
 
     public MyUser register(MyUser user) {
@@ -41,7 +41,7 @@ public class UserService {
             throw new RuntimeException("Email already registered.");
         }
 
-        if (!verifiedEmailRepository.findByEmail(email).isPresent()) {
+        if (!otpService.isEmailVerified(email, OtpType.REGISTRATION)) {
             throw new RuntimeException("Please verify your email before registering.");
         }
 
@@ -49,7 +49,7 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         MyUser savedUser = userRepository.save(user);
 
-        verifiedEmailRepository.deleteByEmail(email);
+        otpService.clearVerification(email, OtpType.REGISTRATION);
         return savedUser;
     }
 
@@ -57,7 +57,7 @@ public class UserService {
         MyUser existingUser = userRepository.findByEmail(user.getEmail());
 
         if (existingUser == null || !passwordEncoder.matches(user.getPassword(), existingUser.getPassword())) {
-            throw new RuntimeException("Invalid username or password");
+            throw new RuntimeException("Invalid email or password");
         }
 
         String accessToken = jwtService.generateAccessToken(user.getEmail());
@@ -66,10 +66,10 @@ public class UserService {
         existingUser.setRefreshToken(refreshToken);
         userRepository.save(existingUser);
 
-        Map<String, String> response = new HashMap<>();
-        response.put("accessToken", accessToken);
-        response.put("refreshToken", refreshToken);
-        return response;
+        Map<String, String> tokens = new HashMap<>();
+        tokens.put("accessToken", accessToken);
+        tokens.put("refreshToken", refreshToken);
+        return tokens;
     }
 
     public String refreshAccessToken(String refreshToken) {
@@ -102,38 +102,21 @@ public class UserService {
         }
     }
 
-    public void sendPasswordResetOtp(String email) {
+    public void resetPassword(String email, String newPassword) {
+        Optional<VerifiedEmail> verified = verifiedEmailRepository.findByEmailAndType(email.toLowerCase(), OtpType.PASSWORD_RESET);
+
+        if (verified.isEmpty()) {
+            throw new RuntimeException("OTP verification required before resetting password.");
+        }
+
         MyUser user = userRepository.findByEmail(email);
         if (user == null) {
-            throw new RuntimeException("User not found");
-        }
-
-        String otp = OtpUtil.generate6DigitOtp();
-        user.setResetOtp(otp);
-        user.setResetOtpExpiry(LocalDateTime.now().plusMinutes(10));
-        userRepository.save(user);
-
-        String message = "Your password reset OTP is: " + otp + "\nIt will expire in 10 minutes.";
-        emailService.sendEmail(email, "Password Reset OTP", message);
-    }
-
-    public void resetPasswordWithOtp(String email, String otp, String newPassword) {
-        MyUser user = userRepository.findByEmail(email);
-        if (user == null) {
-            throw new RuntimeException("User not found");
-        }
-
-        if (user.getResetOtp() == null || !user.getResetOtp().equals(otp)) {
-            throw new RuntimeException("Invalid OTP");
-        }
-
-        if (user.getResetOtpExpiry().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("OTP expired");
+            throw new RuntimeException("User not found.");
         }
 
         user.setPassword(passwordEncoder.encode(newPassword));
-        user.setResetOtp(null);
-        user.setResetOtpExpiry(null);
         userRepository.save(user);
+
+        verifiedEmailRepository.delete(verified.get()); // Clear verification after password reset
     }
 }
