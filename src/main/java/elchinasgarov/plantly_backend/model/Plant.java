@@ -16,6 +16,10 @@ public class Plant {
     @OneToOne(cascade = CascadeType.ALL)
     private DefaultImage image;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private MyUser user;
+
     public Plant() {
     }
 
@@ -25,6 +29,15 @@ public class Plant {
         this.scientificNames = scientificNames;
         this.image = image;
     }
+
+    public MyUser getUser() {
+        return user;
+    }
+
+    public void setUser(MyUser user) {
+        this.user = user;
+    }
+
 
     public Long getId() {
         return id;

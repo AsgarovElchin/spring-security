@@ -4,13 +4,11 @@ package elchinasgarov.plantly_backend.service;
 import elchinasgarov.plantly_backend.model.*;
 import elchinasgarov.plantly_backend.repository.UserRepository;
 import elchinasgarov.plantly_backend.repository.VerifiedEmailRepository;
-import elchinasgarov.plantly_backend.util.OtpUtil;
 import io.jsonwebtoken.ExpiredJwtException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -117,6 +115,6 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
 
-        verifiedEmailRepository.delete(verified.get()); // Clear verification after password reset
+        verifiedEmailRepository.delete(verified.get());
     }
 }

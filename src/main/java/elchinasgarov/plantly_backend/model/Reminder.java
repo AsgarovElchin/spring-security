@@ -29,6 +29,18 @@ public class Reminder {
     @Enumerated(EnumType.STRING)
     private PreviousData previousData;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private MyUser user;
+
+    public MyUser getUser() {
+        return user;
+    }
+
+    public void setUser(MyUser user) {
+        this.user = user;
+    }
+
     public Reminder() {
     }
 

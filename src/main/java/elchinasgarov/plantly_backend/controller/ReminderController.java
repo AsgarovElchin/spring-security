@@ -3,9 +3,12 @@ package elchinasgarov.plantly_backend.controller;
 import elchinasgarov.plantly_backend.dto.ApiErrorResponse;
 import elchinasgarov.plantly_backend.dto.ApiResponse;
 import elchinasgarov.plantly_backend.dto.ReminderDto;
+import elchinasgarov.plantly_backend.model.MyUser;
 import elchinasgarov.plantly_backend.model.ReminderType;
+import elchinasgarov.plantly_backend.model.UserPrincipal;
 import elchinasgarov.plantly_backend.service.ReminderService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,9 +24,13 @@ public class ReminderController {
     }
 
     @PostMapping
-    public ResponseEntity<?> createReminder(@RequestBody ReminderDto reminderDto) {
+    public ResponseEntity<?> createReminder(
+            @RequestBody ReminderDto reminderDto,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
         try {
-            ReminderDto created = reminderService.createReminder(reminderDto);
+            MyUser user = userPrincipal.getUser();
+            ReminderDto created = reminderService.createReminder(reminderDto, user);
             return ResponseEntity.ok(new ApiResponse<>(true, "Reminder created", created));
         } catch (IllegalStateException e) {
             return ResponseEntity.status(409).body(new ApiErrorResponse(e.getMessage()));
@@ -39,9 +46,10 @@ public class ReminderController {
     }
 
     @GetMapping
-    public ResponseEntity<?> getAllReminders() {
-        List<ReminderDto> reminders = reminderService.getAllReminders();
-        return ResponseEntity.ok(new ApiResponse<>(true, "All reminders fetched", reminders));
+    public ResponseEntity<?> getAllReminders(@AuthenticationPrincipal UserPrincipal userPrincipal) {
+        MyUser user = userPrincipal.getUser();
+        List<ReminderDto> reminders = reminderService.getAllRemindersForUser(user.getId());
+        return ResponseEntity.ok(new ApiResponse<>(true, "Reminders fetched", reminders));
     }
 
     @GetMapping("/{id}/{reminderType}")

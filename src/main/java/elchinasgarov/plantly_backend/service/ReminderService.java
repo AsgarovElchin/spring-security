@@ -2,6 +2,7 @@ package elchinasgarov.plantly_backend.service;
 
 import elchinasgarov.plantly_backend.dto.ReminderDto;
 import elchinasgarov.plantly_backend.mapper.ReminderMapper;
+import elchinasgarov.plantly_backend.model.MyUser;
 import elchinasgarov.plantly_backend.model.Reminder;
 import elchinasgarov.plantly_backend.model.ReminderType;
 import elchinasgarov.plantly_backend.repository.ReminderRepository;
@@ -22,7 +23,7 @@ public class ReminderService {
         this.reminderRepository = reminderRepository;
     }
 
-    public ReminderDto createReminder(ReminderDto reminderDto) {
+    public ReminderDto createReminder(ReminderDto reminderDto, MyUser user) {
         boolean exists = reminderRepository.existsByPlantIdAndReminderType(
                 reminderDto.plantId(), reminderDto.reminderType()
         );
@@ -52,16 +53,15 @@ public class ReminderService {
                 reminderDto.previousData()
         );
 
-
-
-
+        reminder.setUser(user);
         Reminder savedReminder = reminderRepository.save(reminder);
         return ReminderMapper.toDto(savedReminder);
     }
 
+    public ReminderDto updateReminder(Long id, ReminderDto reminderDto) {
+        Reminder reminder = reminderRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Reminder not found"));
 
-    public ReminderDto updateReminder(Long id, ReminderDto reminderDto){
-        Reminder reminder = reminderRepository.findById(id).orElseThrow(()-> new RuntimeException("Reminder not found"));
         reminder.setReminderType(reminderDto.reminderType());
         reminder.setRepeatEvery(reminderDto.repeatEvery());
         reminder.setRepeatUnit(reminderDto.repeatUnit());
@@ -76,31 +76,26 @@ public class ReminderService {
         reminder.setNextReminderDateTime(recalculatedNextReminder);
 
         return ReminderMapper.toDto(reminderRepository.save(reminder));
-
     }
 
-    public List<ReminderDto> getAllReminders(){
-        return reminderRepository.findAll()
+    public List<ReminderDto> getAllRemindersForUser(Integer userId) {
+        return reminderRepository.findAllByUserId(userId)
                 .stream()
                 .map(ReminderMapper::toDto)
                 .collect(Collectors.toList());
     }
 
-    public ReminderDto getReminderById(Long id, ReminderType reminderType){
-        Reminder reminder = reminderRepository.findByIdAndReminderType(id,reminderType)
+    public ReminderDto getReminderById(Long id, ReminderType reminderType) {
+        Reminder reminder = reminderRepository.findByIdAndReminderType(id, reminderType)
                 .orElseThrow(() -> new RuntimeException("Reminder not found"));
 
-        return  ReminderMapper.toDto(reminder);
+        return ReminderMapper.toDto(reminder);
     }
 
-    public void deleteReminder(Long id){
+    public void deleteReminder(Long id) {
         if (!reminderRepository.existsById(id)) {
             throw new RuntimeException("Reminder not found");
         }
         reminderRepository.deleteById(id);
     }
-
-
-
-
 }

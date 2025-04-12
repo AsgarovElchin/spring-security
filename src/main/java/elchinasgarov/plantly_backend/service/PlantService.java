@@ -2,6 +2,7 @@ package elchinasgarov.plantly_backend.service;
 
 import elchinasgarov.plantly_backend.dto.PlantDto;
 import elchinasgarov.plantly_backend.mapper.PlantMapper;
+import elchinasgarov.plantly_backend.model.MyUser;
 import elchinasgarov.plantly_backend.model.Plant;
 import elchinasgarov.plantly_backend.repository.PlantRepository;
 import org.springframework.stereotype.Service;
@@ -20,18 +21,19 @@ public class PlantService {
         this.plantRepository = plantRepository;
     }
 
-    public PlantDto savePlant(PlantDto plantDto){
-        Plant plant = PlantMapper.toEntity(plantDto);
-        Plant savedPlant = plantRepository.save(plant);
-        return PlantMapper.toDTO(savedPlant);
-    }
-
-    public List<PlantDto> getAllPlants(){
-        return plantRepository.findAll()
+    public List<PlantDto> getAllPlantsForUser(Integer userId){
+        return plantRepository.findAllByUserId(userId)
                 .stream()
-                .map(plant -> PlantMapper.toDTO(plant))
+                .map(PlantMapper::toDTO)
                 .collect(Collectors.toList());
     }
+
+    public PlantDto savePlant(PlantDto plantDto, MyUser user){
+        Plant plant = PlantMapper.toEntity(plantDto);
+        plant.setUser(user);
+        return PlantMapper.toDTO(plantRepository.save(plant));
+    }
+
 
     public void deletePlantById(Long id){
         if (!plantRepository.existsById(id)) {

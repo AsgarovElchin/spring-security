@@ -55,14 +55,15 @@ public class UserController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<?> refresh(@RequestParam String refreshToken) {
+    public ResponseEntity<?> refresh(@RequestBody RefreshTokenRequestDto request) {
         try {
-            String accessToken = userService.refreshAccessToken(refreshToken);
+            String accessToken = userService.refreshAccessToken(request.getRefreshToken());
             return ResponseEntity.ok(new ApiResponse<>(true, "Access token refreshed", accessToken));
         } catch (RuntimeException e) {
             return ResponseEntity.status(401).body(new ApiErrorResponse(e.getMessage()));
         }
     }
+
 
     @PostMapping("/auth/logout")
     public ResponseEntity<?> logout(Authentication authentication) {

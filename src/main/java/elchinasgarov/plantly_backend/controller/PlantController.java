@@ -3,9 +3,12 @@ package elchinasgarov.plantly_backend.controller;
 import elchinasgarov.plantly_backend.dto.ApiErrorResponse;
 import elchinasgarov.plantly_backend.dto.ApiResponse;
 import elchinasgarov.plantly_backend.dto.PlantDto;
+import elchinasgarov.plantly_backend.model.MyUser;
+import elchinasgarov.plantly_backend.model.UserPrincipal;
 import elchinasgarov.plantly_backend.service.PlantService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,9 +24,13 @@ public class PlantController {
     }
 
     @PostMapping
-    public ResponseEntity<?> addPlant(@RequestBody PlantDto plantDto) {
+    public ResponseEntity<?> addPlant(
+            @RequestBody PlantDto plantDto,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
         try {
-            PlantDto savedPlant = plantService.savePlant(plantDto);
+            MyUser user = userPrincipal.getUser();
+            PlantDto savedPlant = plantService.savePlant(plantDto, user);
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(new ApiResponse<>(true, "Plant created successfully", savedPlant));
         } catch (Exception e) {
@@ -32,8 +39,9 @@ public class PlantController {
     }
 
     @GetMapping
-    public ResponseEntity<?> getAllPlants() {
-        List<PlantDto> plants = plantService.getAllPlants();
+    public ResponseEntity<?> getAllPlants(@AuthenticationPrincipal UserPrincipal userPrincipal) {
+        MyUser user = userPrincipal.getUser();
+        List<PlantDto> plants = plantService.getAllPlantsForUser(user.getId());
         return ResponseEntity.ok(new ApiResponse<>(true, "Plants fetched", plants));
     }
 
