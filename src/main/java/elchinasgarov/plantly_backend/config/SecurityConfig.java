@@ -44,7 +44,8 @@ public class SecurityConfig {
                                 "/refresh",
                                 "/forgot-password",
                                 "/reset-password",
-                                "/api/otp/**"
+                                "/api/otp/**",
+                                "/auth/google"
                         ).permitAll()
                         .requestMatchers(
                                 "/plants/**",

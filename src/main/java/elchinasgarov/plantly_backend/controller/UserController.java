@@ -85,4 +85,17 @@ public class UserController {
             return ResponseEntity.badRequest().body(new ApiErrorResponse(e.getMessage()));
         }
     }
+
+    @PostMapping("/auth/google")
+    public ResponseEntity<?> googleLogin(@RequestBody GoogleLoginRequestDto dto) {
+        try {
+            Map<String, String> tokens = userService.loginWithGoogle(dto.getIdToken());
+            return ResponseEntity.ok(new ApiResponse<>(true, "Google login successful", tokens));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(401).body(new ApiErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(new ApiErrorResponse("Internal server error"));
+        }
+    }
+
 }

@@ -24,6 +24,18 @@ public class MyUser {
 
     private LocalDateTime resetOtpExpiry;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private AuthProvider provider = AuthProvider.CUSTOM;
+
+    public AuthProvider getProvider() {
+        return provider;
+    }
+
+    public void setProvider(AuthProvider provider) {
+        this.provider = provider;
+    }
+
     public int getId() { return id; }
 
     public void setId(int id) { this.id = id; }
