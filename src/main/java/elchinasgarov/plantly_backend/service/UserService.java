@@ -1,7 +1,7 @@
 package elchinasgarov.plantly_backend.service;
 
 
-import com.google.api.client.util.Value;
+
 import elchinasgarov.plantly_backend.model.*;
 import elchinasgarov.plantly_backend.repository.UserRepository;
 import elchinasgarov.plantly_backend.repository.VerifiedEmailRepository;
@@ -10,21 +10,13 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
-import com.google.api.client.googleapis.util.Utils;
 
 @Service
 public class UserService {
 
-
-    @Value("${google.client-id}")
-    private String googleClientId;
 
 
     private final UserRepository userRepository;
@@ -65,29 +57,20 @@ public class UserService {
     public Map<String, String> login(MyUser user) {
         MyUser existingUser = userRepository.findByEmail(user.getEmail());
 
-        // 1. Check if user exists
         if (existingUser == null) {
             throw new RuntimeException("Invalid email or password");
         }
 
-        // 2. Disallow Google users from logging in with password
-        if (existingUser.getProvider() != AuthProvider.CUSTOM) {
-            throw new RuntimeException("Please login using " + existingUser.getProvider().name());
-        }
-
-        // 3. Check password
         if (!passwordEncoder.matches(user.getPassword(), existingUser.getPassword())) {
             throw new RuntimeException("Invalid email or password");
         }
 
-        // 4. Generate JWT tokens
         String accessToken = jwtService.generateAccessToken(user.getEmail());
         String refreshToken = jwtService.generateRefreshToken(user.getEmail());
 
         existingUser.setRefreshToken(refreshToken);
         userRepository.save(existingUser);
 
-        // 5. Return tokens
         Map<String, String> tokens = new HashMap<>();
         tokens.put("accessToken", accessToken);
         tokens.put("refreshToken", refreshToken);
@@ -143,41 +126,5 @@ public class UserService {
         verifiedEmailRepository.delete(verified.get());
     }
 
-    public Map<String, String> loginWithGoogle(String idTokenString) {
-        try {
-            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier
-                    .Builder(Utils.getDefaultTransport(), Utils.getDefaultJsonFactory())
-                    .setAudience(Collections.singletonList(googleClientId)) // from Google Cloud Console
-                    .build();
 
-            GoogleIdToken idToken = verifier.verify(idTokenString);
-            if (idToken == null) throw new RuntimeException("Invalid ID token");
-
-            GoogleIdToken.Payload payload = idToken.getPayload();
-            String email = payload.getEmail().toLowerCase();
-
-            MyUser user = userRepository.findByEmail(email);
-            if (user == null) {
-                user = new MyUser();
-                user.setEmail(email);
-                user.setPassword(""); // Optional: password not required for Google users
-                user.setProvider(AuthProvider.GOOGLE);
-                user = userRepository.save(user);
-            }
-
-            String accessToken = jwtService.generateAccessToken(email);
-            String refreshToken = jwtService.generateRefreshToken(email);
-
-            user.setRefreshToken(refreshToken);
-            userRepository.save(user);
-
-            Map<String, String> tokens = new HashMap<>();
-            tokens.put("accessToken", accessToken);
-            tokens.put("refreshToken", refreshToken);
-            return tokens;
-
-        } catch (Exception e) {
-            throw new RuntimeException("Google token verification failed: " + e.getMessage());
-        }
-    }
 }

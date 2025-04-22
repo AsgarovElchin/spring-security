@@ -24,39 +24,52 @@ public class MyUser {
 
     private LocalDateTime resetOtpExpiry;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private AuthProvider provider = AuthProvider.CUSTOM;
-
-    public AuthProvider getProvider() {
-        return provider;
+    public int getId() {
+        return id;
     }
 
-    public void setProvider(AuthProvider provider) {
-        this.provider = provider;
+    public void setId(int id) {
+        this.id = id;
     }
 
-    public int getId() { return id; }
+    public String getEmail() {
+        return email;
+    }
 
-    public void setId(int id) { this.id = id; }
+    public void setEmail(String email) {
+        this.email = email;
+    }
 
-    public String getEmail() { return email; }
+    public String getPassword() {
+        return password;
+    }
 
-    public void setEmail(String email) { this.email = email; }
+    public void setPassword(String password) {
+        this.password = password;
+    }
 
-    public String getPassword() { return password; }
+    public String getRefreshToken() {
+        return refreshToken;
+    }
 
-    public void setPassword(String password) { this.password = password; }
+    public void setRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
+    }
 
-    public String getRefreshToken() { return refreshToken; }
+    public String getResetOtp() {
+        return resetOtp;
+    }
 
-    public void setRefreshToken(String refreshToken) { this.refreshToken = refreshToken; }
+    public void setResetOtp(String resetOtp) {
+        this.resetOtp = resetOtp;
+    }
 
-    public String getResetOtp() { return resetOtp; }
+    public LocalDateTime getResetOtpExpiry() {
+        return resetOtpExpiry;
+    }
 
-    public void setResetOtp(String resetOtp) { this.resetOtp = resetOtp; }
-
-    public LocalDateTime getResetOtpExpiry() { return resetOtpExpiry; }
-
-    public void setResetOtpExpiry(LocalDateTime resetOtpExpiry) { this.resetOtpExpiry = resetOtpExpiry; }
+    public void setResetOtpExpiry(LocalDateTime resetOtpExpiry) {
+        this.resetOtpExpiry = resetOtpExpiry;
+    }
 }
+
